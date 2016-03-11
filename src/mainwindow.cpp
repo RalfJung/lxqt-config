@@ -172,8 +172,16 @@ public:
 
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
     {
-        int height = QStyledItemDelegate::sizeHint(option, index).height();
-        return QSize(mView->gridSize().width(), qMin(height, mView->gridSize().height()));
+        /* We let Qt calculate the real cell size but consider the 4-px margin
+           around each cell and try to add a 2-px margin around the selection
+           rectangle for styles that, unlike Fusion, highlight the whole item. */
+        QStyleOptionViewItemV4 opt = option;
+        int delta = opt.rect.width() - (mView->gridSize().width() - 8);
+        if (delta > 0)
+          opt.rect.adjust(delta/2, 0 , -delta/2, 0);
+        QSize defaultSize = QStyledItemDelegate::sizeHint(opt, index);
+        return QSize(qMin(defaultSize.width() + 4, mView->gridSize().width() - 8),
+                     qMin(defaultSize.height() + 4, mView->gridSize().height() - 8));
     }
 
 protected:
@@ -182,7 +190,8 @@ protected:
         QStyleOptionViewItemV4 opt = option;
         initStyleOption(&opt, index);
 
-        QSize size(mView->gridSize().width(), mView->iconSize().height());
+        QSize size(mView->gridSize().width() - 8, // 4-px margin around each cell
+                   mView->iconSize().height());
         QPixmap pixmap = opt.icon.pixmap(mView->iconSize());
         opt.icon = QIcon(pixmap.copy(QRect(QPoint(0, 0), size)));
         opt.decorationSize = size;
@@ -199,11 +208,14 @@ LXQtConfig::MainWindow::MainWindow() : QMainWindow()
 {
     setupUi(this);
 
+    /* To always have the intended layout with a vertically centered text
+       on startup, the listview should be shown after it's fully formed. */
+    view->hide();
+
     model = new ConfigPaneModel();
 
     view->setViewMode(QListView::IconMode);
-    view->setIconSize(QSize(32, 32));
-    view->setGridSize(QSize(100, 100));
+    setSizing();
     view->setWordWrap(true);
     view->setUniformItemSizes(true);
     view->setCategoryDrawer(new QCategoryDrawerV3(view));
@@ -226,6 +238,8 @@ void LXQtConfig::MainWindow::load()
     view->setModel(proxyModel);
     view->setItemDelegate(new ConfigItemDelegate(view));
 
+    view->show();
+
     QApplication::restoreOverrideCursor();
 }
 
@@ -236,4 +250,32 @@ void LXQtConfig::MainWindow::activateItem(const QModelIndex &index)
 
     QModelIndex orig = proxyModel->mapToSource(index);
     model->activateItem(orig);
+}
+
+void LXQtConfig::MainWindow::setSizing()
+{
+    // consult the style to know the icon size
+    int iconSize = qBound(16, QApplication::style()->pixelMetric(QStyle::PM_IconViewIconSize), 256);
+    view->setIconSize(QSize(iconSize, iconSize));
+    /* To have an appropriate grid size, we suppose that
+     *
+     * (1) The text has 3 lines and each line has 16 chars (for languages like German), at most;
+     * (2) The selection rect has a margin of 2 px, at most;
+     * (3) There is, at most, a 3-px spacing between text and icon; and
+     * (4) There is a 4-px margin around each cell.
+     */
+    QFontMetrics fm = fontMetrics();
+    int textWidth = fm.averageCharWidth() * 16;
+    int textHeight = fm.lineSpacing() * 3;
+    QSize grid;
+    grid.setWidth(qMax(iconSize, textWidth) + 4);
+    grid.setHeight(iconSize + textHeight + 4 + 3);
+    view->setGridSize(grid + QSize(8, 8));
+}
+
+bool LXQtConfig::MainWindow::event(QEvent * event)
+{
+    if (QEvent::StyleChange == event->type())
+        setSizing();
+    return QMainWindow::event(event);
 }
