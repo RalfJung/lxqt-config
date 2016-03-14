@@ -193,7 +193,9 @@ protected:
         QSize size(mView->gridSize().width() - 8, // 4-px margin around each cell
                    mView->iconSize().height());
         QPixmap pixmap = opt.icon.pixmap(mView->iconSize());
-        opt.icon = QIcon(pixmap.copy(QRect(QPoint(0, 0), size)));
+        int dpr = qApp->devicePixelRatio();
+        if (dpr < 1) dpr = 1;
+        opt.icon = QIcon(pixmap.copy(QRect(QPoint(0, 0), size * dpr)));
         opt.decorationSize = size;
 
         QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter);
@@ -255,7 +257,9 @@ void LXQtConfig::MainWindow::activateItem(const QModelIndex &index)
 void LXQtConfig::MainWindow::setSizing()
 {
     // consult the style to know the icon size
-    int iconSize = qBound(16, QApplication::style()->pixelMetric(QStyle::PM_IconViewIconSize), 256);
+    int dpr = qApp->devicePixelRatio();
+    if (dpr < 1) dpr = 1;
+    int iconSize = qBound(16, QApplication::style()->pixelMetric(QStyle::PM_IconViewIconSize), 256) * dpr;
     view->setIconSize(QSize(iconSize, iconSize));
     /* To have an appropriate grid size, we suppose that
      *
