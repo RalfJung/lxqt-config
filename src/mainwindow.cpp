@@ -192,10 +192,12 @@ protected:
 
         QSize size(mView->gridSize().width() - 8, // 4-px margin around each cell
                    mView->iconSize().height());
-        QPixmap pixmap = opt.icon.pixmap(mView->iconSize());
-        // for having sharp icons with HDPI
+        // for having sharp non-scalable icons with HDPI
         int dpr = qApp->devicePixelRatio();
         if (dpr < 1) dpr = 1;
+        QPixmap pixmap = opt.icon.pixmap(mView->iconSize() / dpr); // -> Qt doc -> QIcon::pixmap()
+        if (dpr > 1 && pixmap.size() == mView->iconSize()) // exceptional (scalable or not from icon set)
+            pixmap = opt.icon.pixmap(mView->iconSize());
         opt.icon = QIcon(pixmap.copy(QRect(QPoint(0, 0), size * dpr)));
         opt.decorationSize = size;
 
