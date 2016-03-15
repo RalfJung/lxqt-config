@@ -193,6 +193,7 @@ protected:
         QSize size(mView->gridSize().width() - 8, // 4-px margin around each cell
                    mView->iconSize().height());
         QPixmap pixmap = opt.icon.pixmap(mView->iconSize());
+        // for having sharp icons with HDPI
         int dpr = qApp->devicePixelRatio();
         if (dpr < 1) dpr = 1;
         opt.icon = QIcon(pixmap.copy(QRect(QPoint(0, 0), size * dpr)));
@@ -210,8 +211,8 @@ LXQtConfig::MainWindow::MainWindow() : QMainWindow()
 {
     setupUi(this);
 
-    /* To always have the intended layout with a vertically centered text
-       on startup, the listview should be shown after it's fully formed. */
+    /* To always have the intended layout on startup,
+       the listview should be shown after it's fully formed. */
     view->hide();
 
     model = new ConfigPaneModel();
@@ -257,10 +258,13 @@ void LXQtConfig::MainWindow::activateItem(const QModelIndex &index)
 void LXQtConfig::MainWindow::setSizing()
 {
     // consult the style to know the icon size
+    int iconSize = qBound(16, QApplication::style()->pixelMetric(QStyle::PM_IconViewIconSize), 256);
+    view->setIconSize(QSize(iconSize, iconSize));
+    // DPR is automatically taken into account in setIconSize()
+    // but wee need to consider it explicitly below
     int dpr = qApp->devicePixelRatio();
     if (dpr < 1) dpr = 1;
-    int iconSize = qBound(16, QApplication::style()->pixelMetric(QStyle::PM_IconViewIconSize), 256) * dpr;
-    view->setIconSize(QSize(iconSize, iconSize));
+    iconSize *= dpr;
     /* To have an appropriate grid size, we suppose that
      *
      * (1) The text has 3 lines and each line has 16 chars (for languages like German), at most;
