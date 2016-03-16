@@ -223,7 +223,7 @@ LXQtConfig::MainWindow::MainWindow() : QMainWindow()
     setSizing();
     view->setWordWrap(true);
     view->setUniformItemSizes(true);
-    view->setCategoryDrawer(new QCategoryDrawerV3(view));
+    //view->setCategoryDrawer(new QCategoryDrawerV3(view));
 
     connect(view, &QAbstractItemView::activated, this, &MainWindow::activateItem);
     view->setFocus();
@@ -241,7 +241,7 @@ void LXQtConfig::MainWindow::load()
     proxyModel->setSourceModel(model);
 
     view->setModel(proxyModel);
-    view->setItemDelegate(new ConfigItemDelegate(view));
+    //view->setItemDelegate(new ConfigItemDelegate(view));
 
     view->show();
 
